@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Attendance Dashboard</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:sans-serif;
+}
+
+body{
+  background:
+  linear-gradient(120deg,#0b1120,#172554,#1d4ed8);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  padding:25px;
+  position:relative;
+}
+
+body.dark{
+  background:linear-gradient(120deg,#000000,#111827,#1f2937);
+}
+
+.container{
+  width:920px;
+  background:rgba(255,255,255,0.95);
+  padding:30px;
+  border-radius:22px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.18);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.2);
+}
+
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:20px;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+input,select{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover{
+  transform:translateY(-2px);
+}
+
+.add-btn{
+  background:#2563eb;
+  color:white;
+}
+
+.dark-btn{
+  background:#111827;
+  color:white;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th{
+  background:#0f172a;
+  color:#ffffff;
+  padding:11px 18px;
+  border-radius:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+}
+
+td{
+  padding:12px;
+  border-bottom:1px solid #eee;
+}
+
+tr:hover{
+  background:#f5f7ff;
+}
+
+.present{
+  color:green;
+  font-weight:bold;
+}
+
+.absent{
+  color:red;
+  font-weight:bold;
+}
+
+.status-btn{
+  margin:2px;
+  padding:5px 10px;
+}
+
+.present-btn{
+  background:green;
+  color:white;
+}
+
+.absent-btn{
+  background:red;
+  color:white;
+}
+
+.delete-btn{
+  background:black;
+  color:white;
+}
+
+.percent{
+  font-size:12px;
+  color:#555;
+}
+
+.history{
+  margin-top:5px;
+  font-size:11px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📘 Smart Attendance Dashboard</h1>
+
+<div class="top">
+
+  <input type="date" id="date">
+
+  <select id="subject">
+    <option>Physics</option>
+    <option>Math</option>
+    <option>Chemistry</option>
+    <option>Computer</option>
+  </select>
+
+  <button class="dark-btn"
+  onclick="toggleDark()">
+  🌙 Dark Mode
+  </button>
+
+  <div>
+    <input type="text"
+    id="name"
+    placeholder="Student name">
+
+    <button class="add-btn"
+    onclick="addStudent()">
+    Add
+    </button>
+  </div>
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Roll</th>
+<th>Name</th>
+<th>Status</th>
+<th>Attendance %</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+
+</table>
+
+</div>
+
+<script>
+
+let students =
+JSON.parse(localStorage.getItem("students")) || [];
+
+let roll =
+students.length ?
+students[students.length-1].roll+1 : 1;
+
+window.onload = ()=>{
+
+  document.getElementById("date").value =
+  new Date().toISOString().split("T")[0];
+
+  show();
+};
+
+function save(){
+  localStorage.setItem(
+  "students",
+  JSON.stringify(students)
+  );
+}
+
+function addStudent(){
+
+  let name =
+  document.getElementById("name")
+  .value.trim();
+
+  if(name==="")
+  return alert("Enter student name");
+
+  students.push({
+    roll:roll,
+    name:name,
+    attendance:{}
+  });
+
+  roll++;
+
+  document.getElementById("name").value="";
+
+  save();
+  show();
+}
+
+function show(){
+
+  let tbody =
+  document.getElementById("tbody");
+
+  let date =
+  document.getElementById("date").value;
+
+  let subject =
+  document.getElementById("subject").value;
+
+  tbody.innerHTML="";
+
+  students.forEach(s=>{
+
+    let key = date+"_"+subject;
+
+    let status =
+    s.attendance[key] || "Not Marked";
+
+    let total =
+    Object.keys(s.attendance).length;
+
+    let presentCount =
+    Object.values(s.attendance)
+    .filter(v=>v==="present").length;
+
+    let percent =
+    total ?
+    Math.round((presentCount/total)*100)
+    :0;
+
+    tbody.innerHTML += `
+
+    <tr>
+
+      <td>${s.roll}</td>
+
+      <td>${s.name}</td>
+
+      <td>
+
+      <span class="
+      ${status==='present'
+      ?'present'
+      :status==='absent'
+      ?'absent':''
+      }">
+
+      ${status}
+
+      </span>
+
+      <br>
+
+      <button
+      class="status-btn present-btn"
+      onclick="mark(${s.roll},'present')">
+      Present
+      </button>
+
+      <button
+      class="status-btn absent-btn"
+      onclick="mark(${s.roll},'absent')">
+      Absent
+      </button>
+
+      <div class="history">
+      📚 ${subject} | 📅 ${date}
+      </div>
+
+      </td>
+
+      <td class="percent">
+      ${percent}%
+      </td>
+
+      <td>
+
+      <button
+      class="delete-btn"
+      onclick="removeStudent(${s.roll})">
+      Delete
+      </button>
+
+      </td>
+
+    </tr>
+    `;
+  });
+
+}
+
+function mark(r,st){
+
+  let date =
+  document.getElementById("date").value;
+
+  let subject =
+  document.getElementById("subject").value;
+
+  let key = date+"_"+subject;
+
+  let s =
+  students.find(x=>x.roll===r);
+
+  if(s){
+    s.attendance[key]=st;
+  }
+
+  save();
+  show();
+}
+
+function removeStudent(r){
+
+  students =
+  students.filter(x=>x.roll!==r);
+
+  save();
+  show();
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
+}
+
+</script>
+
+</body>
+</html>
